@@ -1,5 +1,6 @@
 import os
 import threading
+import requests
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
@@ -12,30 +13,31 @@ app = Flask(__name__)
 def home():
     return "Bot Running"
 
-# 🔥 قاعدة بيانات تجريبية (3 ملفات فقط)
+# 🔥 قاعدة بيانات تجريبية (3 ملفات)
 FILES = [
     {
-        "name": "شهادات شكر وتقدير PDF",
-        "type": "PDF",
-        "keywords": ["شهادة", "شكر", "تقدير"],
+        "name": "شهادات شكر PDF",
+        "type": "pdf",
+        "keywords": ["شهادة", "شكر"],
         "link": "https://drive.google.com/uc?id=1ARMS91AfzA2YK2oS46dOo9QrlQwK5gSh&export=download"
     },
     {
-        "name": "شهادة شكر Word",
-        "type": "Word",
+        "name": "شهادة وورد",
+        "type": "docx",
         "keywords": ["شهادة", "وورد"],
         "link": "https://drive.google.com/uc?id=1FrQQceEc3V7LG3bzs29ZkP8hotkXoJPL&export=download"
     },
     {
-        "name": "شهادات PowerPoint",
-        "type": "PPT",
-        "keywords": ["شهادة", "عرض", "بوربوينت"],
+        "name": "شهادات بوربوينت",
+        "type": "pptx",
+        "keywords": ["شهادة", "عرض"],
         "link": "https://drive.google.com/uc?id=1v63QRwfCUQ1m8MOXoZGCw8By7NRglgDa&export=download"
     }
 ]
 
+# ▶️ بدء
 def start(update: Update, context: CallbackContext):
-    update.message.reply_text("اكتب اسم الملف أو كلمة مثل: شهادة")
+    update.message.reply_text("اكتب كلمة للبحث مثل: شهادة")
 
 # 🔍 البحث
 def search(update: Update, context: CallbackContext):
@@ -57,14 +59,23 @@ def search(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text("📂 اختر الملف:", reply_markup=reply_markup)
 
-# 📥 عند الضغط
+# 📥 إرسال الملف مباشرة
 def button(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
     file = FILES[int(query.data)]
 
-    query.message.reply_text(f"⬇️ تحميل:\n{file['link']}")
+    url = file["link"]
+
+    # تحميل الملف من الرابط
+    response = requests.get(url)
+
+    # إرسال الملف
+    query.message.reply_document(
+        document=response.content,
+        filename=f"{file['name']}.{file['type']}"
+    )
 
 def run_bot():
     updater = Updater(TOKEN, use_context=True)
